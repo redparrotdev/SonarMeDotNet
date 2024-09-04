@@ -1,0 +1,15 @@
+FROM {default_image} AS build
+
+WORKDIR {workdir}
+ENV PATH={tools_env_path}
+
+COPY . .
+
+RUN apt-get update && apt-get install libxml2
+RUN dotnet tool install --global dotnet-sonarscanner
+RUN dotnet tool install --global dotnet-coverage
+
+RUN dotnet sonarscanner begin /k:"{app_key}" /d:sonar.token="{app_token}" /d:sonar.cs.vscoveragexml.reportsPaths={coverage_file_name} /d:sonar.host.url="{sonar_host}:{sonar_port}" /d:sonar.coverage.exclusions={coverage_exclude}
+RUN dotnet build --no-incremental
+RUN dotnet-coverage collect "dotnet test" -f xml -o "{coverage_file_name}"
+RUN dotnet sonarscanner end /d:sonar.token="{app_token}"
